@@ -1,10 +1,10 @@
-(ns mw.mw1
-  (:require [org.httpkit.client :as http] ; http://www.http-kit.org/client.html
-  	    [clojure.data.xml :as xml]
-	    [clojure.java.io :as io]
-            [fogbugz-stats.fogbugz-api :as fog]
-            [clojure.tools.cli :refer [parse-opts]]
-            )
+(ns fogbugz-stats.mw1
+  (:require
+;;   [org.httpkit.client :as http] ; http://www.http-kit.org/client.html
+;;   [clojure.data.xml :as xml]
+   [clojure.java.io :as io]
+;;   [clojure.tools.cli :refer [parse-opts]]
+   )
   (:gen-class)
   )
 

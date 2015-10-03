@@ -2,8 +2,8 @@
   (:require [org.httpkit.client :as http] ; http://www.http-kit.org/client.html
   	    [clojure.data.xml :as xml]
 	    [clojure.java.io :as io]
-            [fogbugz-stats.fogbugz-api :as fog]
-            [mw.mw1 :as mw1]
+            [fogbugz-stats.fogbugz-api :as api]
+            [fogbugz-stats.mw1 :as mw1]
             [clojure.tools.cli :refer [parse-opts]]
             )
   (:gen-class)
@@ -15,7 +15,7 @@
 (def Config
   "Private config settings, i.e. not be distributed"
   ;;{:url "" :token ""})
-  (read-string (find-and-slurp "fogbugz-stats.config")))
+  (read-string (mw1/find-and-slurp "fogbugz-stats.config")))
 
   
 
