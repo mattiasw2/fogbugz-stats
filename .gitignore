@@ -20,3 +20,4 @@ pom.xml.asc
 *.log
 /fogbugz-stats.config
 
+/src/fogbugz_stats/fogbugz-stats.config
