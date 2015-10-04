@@ -12,6 +12,7 @@
                  ;; user=> (refresh)
                  [org.clojure/tools.namespace "0.2.11"]
                  [org.clojure/tools.cli "0.3.3"]
+                 ;; duplicate trace [org.clojure/tools.trace "0.7.8"]
                  ]
   :main ^:skip-aot fogbugz-stats.core
   :target-path "target/%s"
