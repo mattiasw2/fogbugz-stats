@@ -1,6 +1,6 @@
 (ns fogbugz-stats.mwm
   (:require
-   [clojure.pprint :as pp]
+   ;; [clojure.pprint :as pp]
    [clojure.walk :as walk]
    )
   (:gen-class)
@@ -24,9 +24,11 @@
 ;;  (macroexpand f)
 ;;   (def foo (clojure.core/fn ([x] {:pre [(some? x)], :post [(some? %)]} (:foo (:bar x)))))
 
+;; (mwm/defn2 bar "no nils" ([x] (:foo (:bar x))) ([y z] (:gegga y)))
+;; (mwm/defn2 bar ":gegga might be nil" ([x] (:foo (:bar x))) ([y z] (:gegga? y)))
+;; (mwm/defn2 foo? "can return nil" ([x] (:foo (:bar x))) ([y z] (:gegga y)))
 
-;; need to handle namespace (name :foo/bar)  => "bar"
-;; (namespace :foo/bar) => "foo"
+;;; wrap all (:xxx yyy) calls and make sure result is non-nil
 (defn wrap-get [x]
   (if (and (list? x)
            (= 2 (count x))
@@ -34,6 +36,7 @@
     (let [keyword1 (first x)
           ;; (str) better than (name) + (name-space), but need to remove ':'
           keyword-as-string-raw (str keyword1)
+          ;; todo: do we have a bug here and do not hande ::foo?????
           keyword-as-string (.substring keyword-as-string-raw 1)]   
       (if (not= \? (last keyword-as-string))
         `(let [res# ~x] (assert (not (nil? res#)) ~(str keyword-as-string-raw " is nil")) res#) 
@@ -44,35 +47,46 @@
         ))
     x))
 
-(defmacro defn3 [& body]
+;;; return true if names ends with ?
+(defn q? [name]
+  ;; (str) in case we get a keyword
+  (= \? (last (str name))))
+
+
+;;; add :post unless allowed-to-return-nil
+;;; add :pre for each argument whose name not ending with ?
+(defn build-pre-post [args allowed-to-return-nil]
+  (conj
+   (if allowed-to-return-nil {} {:post #(not (nil? %))})
+   {:pre (into [] (for [arg (filter (complement q?) args)] `(not (nil? ~arg))))}))
+
+
+;;; add {:pre :post} map unless prepost-map already exists
+(defn add-pre-post [clause allowed-to-return-nil]
+  (let [args (first clause)
+        prepost (map? (second clause))
+        rst (nthrest clause 1)]
+    (if prepost
+      clause
+      (list args (build-pre-post args allowed-to-return-nil) rst))))
+            
+;;; just like defn, except that it hates nils in (:xxx ??) lookups and
+;;; in function arguments and function return values
+;;; argument names ending with ? and function names ending with ? can be nil
+;;;
+;;; comment disappears when macroexpanding, but (doc XXX) works
+(defmacro defn2 [& body]
   ;; expand first in order to make all bodies look the same, regardless of one or more clauses
   (let [defun (macroexpand-1 (cons 'defn body))
-        [c1 name [c2 clauses]] defun
+        [c1 name [c2 & clauses]] defun
         clauses2 (for [clause clauses] (walk/postwalk wrap-get clause))
-        res `(~c1 ~name (~c2 ~clauses2))]
+        allowed-to-return-nil (q? name)
+        clauses3 (for [clause clauses2] (add-pre-post clause allowed-to-return-nil))
+        res `(~c1 ~name (~c2 ~clauses3))]
     res))
 
 
 
 
-;; (defn3 foo "comment" [x] {:pre [(some? x)], :post [(some? %)]} (:foo (:bar x)))
 
 
-
-;;; should this be a macro?
-;; (defn assert-not-nil
-;;   "if v = nil, then abort"
-;;   [v k]
-;;   (assert (not (nil? v)) (str k " is nil"))
-;;   v)
-
-  
-
-;; (walk/postwalk wrap-get f)
-;; (defn foo "comment" [x] {:pre [(some? x)], :post [(some? %)]} (assert-some (:foo (assert-some (:bar x)))))
-
-;; (def f2 '(defn foo "comment" [x] {:pre [(some? x)]  :post [(some? %)]} (:foo (:bar? x))))
-;; (walk/postwalk mw1/wrap-get f)
-
-;; (walk/postwalk mw1/wrap-get f2)
-;; (def f3 '(defn foo "comment" [x] {:pre [(some? x)]  :post [(some? %)]} (:foo? (:bar x))))

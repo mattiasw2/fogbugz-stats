@@ -1,5 +1,6 @@
 (ns fogbugz-stats.mw1
   (:require
+   [fogbugz-stats.mwm :as mwm]
    ;;   [org.httpkit.client :as http] ; http://www.http-kit.org/client.html
    [clojure.xml :as c-xml]
    [clojure.data.xml :as xml]
