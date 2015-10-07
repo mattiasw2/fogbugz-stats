@@ -56,9 +56,11 @@
 ;;; add :post unless allowed-to-return-nil
 ;;; add :pre for each argument whose name not ending with ?
 (defn build-pre-post [args allowed-to-return-nil]
-  (conj
-   (if allowed-to-return-nil {} {:post #(not (nil? %))})
-   {:pre (into [] (for [arg (filter (complement q?) args)] `(not (nil? ~arg))))}))
+  (let [pre (into [] (for [arg (filter (complement q?) args)] `(not (nil? ~arg))))
+        pre2 (if (> (count pre) 0) {:pre pre} {})
+        post (if allowed-to-return-nil {} {:post [#(not (nil? %))]})
+        ]
+    (conj pre2 post)))
 
 
 ;;; add {:pre :post} map unless prepost-map already exists
@@ -66,7 +68,8 @@
   (let [args (first clause)
         prepost (map? (second clause))
         rst (nthrest clause 1)]
-    (if prepost
+    ;; make sure map is not the only part of the body, it might be that the function returns a map
+    (if (and prepost (> (count rst) 1))
       clause
       (list args (build-pre-post args allowed-to-return-nil) rst))))
             
@@ -80,9 +83,12 @@
   (let [defun (macroexpand-1 (cons 'defn body))
         [c1 name [c2 & clauses]] defun
         clauses2 (for [clause clauses] (walk/postwalk wrap-get clause))
-        allowed-to-return-nil (q? name)
+        ;; todo disallow :post if recur occurs in clause
+        ;; or wrap using loop, but :pre then only be run once?
+        ;; http://dev.clojure.org/jira/browse/CLJ-1475
+        allowed-to-return-nil (q? name); true ;; to prevent :post(q? name)
         clauses3 (for [clause clauses2] (add-pre-post clause allowed-to-return-nil))
-        res `(~c1 ~name (~c2 ~clauses3))]
+        res `(~c1 ~name (~c2 ~@clauses3))]
     res))
 
 
@@ -90,3 +96,29 @@
 
 
 
+(def ff1 '(mwm/defn2 find-and-slurp
+  "Search and slurp for file in this dir, and all parents until found. Throw exception if not found. Max 50 levels"
+  ([filename] (find-and-slurp filename 50 ""))
+  ([filename level prefix]
+   (if (< level 0) 
+     (throw (Exception. (str "Not found: " filename)))
+     (if (.exists (clojure.java.io/as-file (str prefix filename)))
+       (slurp (str prefix filename))
+       (recur filename (- level 1) (str "../" prefix))))))
+  )
+
+(def ff2 '(mwm/defn2 xml-keep-tag-content
+  "Keep recursive map and only keep :tag and :content as key and value.
+   The resulting structure looks like json."
+  ([pxml]
+   (if (:tag? pxml)
+     (xml-keep-tag-content (:tag pxml)(:content pxml))
+     pxml))
+  ([tag content]
+   {tag
+    (if (seq? content)
+      (let [res (for [pxml content] (xml-keep-tag-content pxml))]
+        ;; use vector and remove singletons to make structure clearer
+        (if (> (count res) 1) (into [] res) (first res)))
+      content)}))
+)
