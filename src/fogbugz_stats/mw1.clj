@@ -15,7 +15,7 @@
 
 ;; (use 'clojure.tools.logging)
 
-(defn find-and-slurp
+(mwm/defn2 find-and-slurp
   "Search and slurp for file in this dir, and all parents until found. Throw exception if not found. Max 50 levels"
   ([filename] (find-and-slurp filename 50 ""))
   ([filename level prefix]

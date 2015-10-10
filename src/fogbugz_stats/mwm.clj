@@ -6,6 +6,9 @@
   (:gen-class)
   )
 
+;; todo:
+;; extend to :keys
+;; (let [{:keys [a b]} {:a 10, :b 20, :c 39}] [a b])  =>  [10 20]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; I hate nil:s, and I do not expect them unless I ask for them
@@ -56,28 +59,9 @@
 (defn- ignore-arg? [name]
   (or (q? name) (keyword? name) (= "&" (str name))))
 
-;;; todo: but still cannot handle mw1/find-and-slurp
-;;; what is wrong with the clojure compiler?
-;;; it might be that I macroexpand too early or something different
-;; (defn find-and-slurp
-;;    "Search and slurp for file in this dir, and all parents until found. Throw exception if not found. Max 50 levels"
-;;   ([filename]
-;;    {:pre [(not (nil? filename))]
-;;     :post [#(not (nil? %))]
-;;     }
-;;    (find-and-slurp filename 50 ""))
-;;   ([filename level prefix]
-;;    {:pre [(not (nil? filename))(not (nil? prefix))(not (nil? level))]
-;;     ;;; remove this :post row and it compiles, so why doesn't it work when using defn2?
-;;     :post [#(not (nil? %))]
-;;     }
-;;    (if (< level 0) 
-;;      (throw (Exception. (str "Not found: " filename)))
-;;      (if (.exists (clojure.java.io/as-file (str prefix filename)))
-;;         (slurp (str prefix filename))
-;;         (recur filename (- level 1) (str "../" prefix))))))
 
 ;;; return true of body contains recur
+;;; if recur exists, we will skip the :post
 (defn- recur? [fun]
   (some #(and (seq? %)(= 'recur (first %)))
         (tree-seq seq? rest fun)))
@@ -100,7 +84,7 @@
     ;; make sure map is not the only part of the body, it might be that the function returns a map
     (if (and prepost (> (count rst) 1))
       clause
-      (list args (build-pre-post args no-post) rst))))
+      (cons args (cons (build-pre-post args no-post) rst)))))
             
 ;;; just like defn, except that it hates nils in (:xxx ??) lookups and
 ;;; in function arguments and function return values
@@ -163,3 +147,19 @@
 ;;   [& args?]
 ;;   (println "Hello, World!"))
 ;; )
+
+;; (def ff5 '(mwm/defn2 api-xml [config]
+;;   (let [res @(http/get (:url config) {})
+;;         {:keys [status error]} res]
+;;     (if error (error "Failed, exception is " error res))
+;;     (:body res)
+;;     )))
+
+;; (def ff6 '(mwm/defn2 api-xml? [config]
+;;   (let [res @(http/get (:url config) {})
+;;         ;;{:keys [status error]} res
+;;         ]
+;;     ;; (if error (error "Failed, exception is " error res))
+;;       ;; (:body res)
+;;     res
+;;     )))
