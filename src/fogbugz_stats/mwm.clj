@@ -52,11 +52,14 @@
   ;; (str) in case we get a keyword
   (= \? (last (str name))))
 
+;;; ignore this argument
+(defn ignore-arg? [name]
+  (or (q? name) (keyword? name) (= "&" (str name))))
 
 ;;; add :post unless allowed-to-return-nil
 ;;; add :pre for each argument whose name not ending with ?
 (defn build-pre-post [args allowed-to-return-nil]
-  (let [pre (into [] (for [arg (filter (complement q?) args)] `(not (nil? ~arg))))
+  (let [pre (into [] (for [arg (filter (complement ignore-arg?) args)] `(not (nil? ~arg))))
         pre2 (if (> (count pre) 0) {:pre pre} {})
         post (if allowed-to-return-nil {} {:post [#(not (nil? %))]})
         ]
@@ -121,4 +124,16 @@
         ;; use vector and remove singletons to make structure clearer
         (if (> (count res) 1) (into [] res) (first res)))
       content)}))
+)
+
+(def ff3 '(mwm/defn2 -main
+  "I don't do a whole lot ... yet."
+  [& args]
+  (println "Hello, World!"))
+)
+
+(def ff4 '(mwm/defn2 -main?
+  "I don't do a whole lot ... yet."
+  [& args?]
+  (println "Hello, World!"))
 )
