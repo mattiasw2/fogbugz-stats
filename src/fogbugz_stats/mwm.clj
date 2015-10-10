@@ -233,7 +233,20 @@
             (let [x (:foo config)]
               [x x])))
 
+(def ff10 '(mwm/defn2 api-xml [config]
+  (let [res @(http/get (:url config) {})
+        {:keys [status error?]} res
+        ]
+    (if error? (error "Failed, exception is " error? res))
+    (:body res)
+    )))
 
-;; prewalk is the one I want if I would like to expand let and then replace
-;; (clojure.walk/prewalk #(do (println %) %) mwm/ff7)
-;; (clojure.walk/postwalk #(do (println %) %) mwm/ff7)
+;; note that error? refers to field :error
+;; the ? is only there to allow nil
+(def ff10 '(mwm/defn2 api-xml [config]
+  (let [res @(http/get (:url config) {})
+        {:keys [status error?]} res
+        ]
+    (if error? (error "Failed, exception is " error? res))
+    (:body res)
+    )))
