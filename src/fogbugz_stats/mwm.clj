@@ -1,6 +1,6 @@
 (ns fogbugz-stats.mwm
   (:require
-   ;; [clojure.pprint :as pp]
+   [clojure.pprint :as pp]
    [clojure.walk :as walk]
    )
   (:gen-class)
@@ -12,6 +12,8 @@
 ;; (let [{:keys [a b]} {:a 10, :b 20, :c 39}] [a b])  =>  [10 20]
 ;;
 ;; How? They are expanded into (clojure.core/get map :a) Should I replace them too?
+;; but if I only look at (get with last arg keyword, it should work!
+;;
 ;; The problem is that (get map key) is also valid for vectors etc.... Do I want to extend to them?
 ;; http://conj.io/store/v1/org.clojure/clojure/1.7.0/clj/clojure.core/get
 ;;
@@ -54,24 +56,50 @@
 ;; (mwm/defn2 bar ":gegga might be nil" ([x] (:foo (:bar x))) ([y z] (:gegga? y)))
 ;; (mwm/defn2 foo? "can return nil" ([x] (:foo (:bar x))) ([y z] (:gegga y)))
 
+;;; true if (:keyword ??)
+(defn is-keyword-get? [x]
+  (and (list? x)
+       (= 2 (count x))
+       (keyword? (first x))))
+
+(defn is-keyword-get-get? [x]
+  (and (list? x)
+       (= 3 (count x))
+       (= 'clojure.core/get (first x))
+       (keyword? (last x))))
+
+(defn is-let? [x]
+  (and (list? x)
+       (< 2 (count x))
+       (= 'clojure.core/let (first x))))
+
+
+
 ;;; wrap all (:xxx yyy) calls and make sure result is non-nil
-(defn- wrap-get [x]
-  (if (and (list? x)
-           (= 2 (count x))
-           (keyword? (first x)))
+;;; this must be called using postwalk, since (:ccc ???) is in the result, and then I would expand that again
+(defn wrap-get-2 [x]
+  (if (is-keyword-get? x)
     (let [keyword1 (first x)
           ;; (str) better than (name) + (name-space), but need to remove ':'
           keyword-as-string-raw (str keyword1)
           ;; todo: do we have a bug here and do not hande ::foo?????
           keyword-as-string (.substring keyword-as-string-raw 1)]   
       (if (not= \? (last keyword-as-string))
-        `(let [res# ~x] (assert (not (nil? res#)) ~(str keyword-as-string-raw " is nil")) res#) 
+        `(clojure.core/let [res# ~x] (assert (not (nil? res#)) ~(str keyword-as-string-raw " is nil")) res#) 
         ;; we have to remove the final ? in :foo? since just an annotation
         (let [name2 (.substring keyword-as-string 0 (- (count keyword-as-string) 1))
               keyword2 (keyword name2)]
           (list keyword2 (second x)))
         ))
     x))
+
+;;; (get map :foo) => (:foo map)
+(defn remove-get-3 [x]
+  (if (is-keyword-get-get? x)
+    (list (last x) (second x))
+    x))
+
+
 
 ;;; return true if names ends with ?
 (defn- q? [name]
@@ -116,9 +144,13 @@
 ;;; comment disappears when macroexpanding, but (doc XXX) works
 (defmacro defn2 [& body]
   ;; expand first in order to make all bodies look the same, regardless of one or more clauses
-  (let [defun (macroexpand-1 (cons 'defn body))
+  ;; macroexpand instead of macroexpand-1 since we want to handle :keys
+  (let [defun (macroexpand-1 (cons 'clojure.core/defn body))
         [c1 name [c2 & clauses]] defun
-        clauses2 (for [clause clauses] (walk/postwalk wrap-get clause))
+        ;; expand away let mostly, in order to handle :keys in let
+        clauses1 (for [clause clauses] (walk/postwalk macroexpand clause))
+        ;; _ (pp/pprint clauses1)
+        clauses2 (for [clause clauses1] (walk/postwalk #(wrap-get-2 (remove-get-3 %)) clause))
         no-post (q? name)
         ;; disallow :post if recur occurs in clause
         ;; or wrap using loop, but :pre then only be run once?
@@ -186,3 +218,22 @@
 ;;       ;; (:body res)
 ;;     res
 ;;     )))
+
+(def ff7 '(mwm/defn2 keys [config]
+            (let [{:keys [a b]} config
+                  foo (:foo config)]
+              [a b])))
+
+
+(def ff8 '(mwm/defn2 keys [config]
+            (let [x (:foo config)]
+              [x x])))
+
+(def ff9 '(mwm/defn2 keys [config]
+            (let [x (:foo config)]
+              [x x])))
+
+
+;; prewalk is the one I want if I would like to expand let and then replace
+;; (clojure.walk/prewalk #(do (println %) %) mwm/ff7)
+;; (clojure.walk/postwalk #(do (println %) %) mwm/ff7)
