@@ -29,7 +29,7 @@
 ;; (mwm/defn2 foo? "can return nil" ([x] (:foo (:bar x))) ([y z] (:gegga y)))
 
 ;;; wrap all (:xxx yyy) calls and make sure result is non-nil
-(defn wrap-get [x]
+(defn- wrap-get [x]
   (if (and (list? x)
            (= 2 (count x))
            (keyword? (first x)))
@@ -48,12 +48,12 @@
     x))
 
 ;;; return true if names ends with ?
-(defn q? [name]
+(defn- q? [name]
   ;; (str) in case we get a keyword
   (= \? (last (str name))))
 
 ;;; ignore this argument
-(defn ignore-arg? [name]
+(defn- ignore-arg? [name]
   (or (q? name) (keyword? name) (= "&" (str name))))
 
 ;;; todo: but still cannot handle mw1/find-and-slurp
@@ -78,13 +78,13 @@
 ;;         (recur filename (- level 1) (str "../" prefix))))))
 
 ;;; return true of body contains recur
-(defn recur? [fun]
+(defn- recur? [fun]
   (some #(and (seq? %)(= 'recur (first %)))
         (tree-seq seq? rest fun)))
 
 ;;; add :post unless allowed-to-return-nil
 ;;; add :pre for each argument whose name not ending with ?
-(defn build-pre-post [args no-post]
+(defn- build-pre-post [args no-post]
   (let [pre (into [] (for [arg (filter (complement ignore-arg?) args)] `(not (nil? ~arg))))
         pre2 (if (> (count pre) 0) {:pre pre} {})
         post (if no-post {} {:post [#(not (nil? %))]})
@@ -93,7 +93,7 @@
 
 
 ;;; add {:pre :post} map unless prepost-map already exists
-(defn add-pre-post [clause no-post]
+(defn- add-pre-post [clause no-post]
   (let [args (first clause)
         prepost (map? (second clause))
         rst (nthrest clause 1)]
@@ -125,41 +125,41 @@
 
 
 
-(def ff1 '(mwm/defn2 find-and-slurp
-  "Search and slurp for file in this dir, and all parents until found. Throw exception if not found. Max 50 levels"
-  ([filename] (find-and-slurp filename 50 ""))
-  ([filename level prefix]
-   (if (< level 0) 
-     (throw (Exception. (str "Not found: " filename)))
-     (if (.exists (clojure.java.io/as-file (str prefix filename)))
-       (slurp (str prefix filename))
-       (recur filename (- level 1) (str "../" prefix))))))
-  )
+;; (def ff1 '(mwm/defn2 find-and-slurp
+;;   "Search and slurp for file in this dir, and all parents until found. Throw exception if not found. Max 50 levels"
+;;   ([filename] (find-and-slurp filename 50 ""))
+;;   ([filename level prefix]
+;;    (if (< level 0) 
+;;      (throw (Exception. (str "Not found: " filename)))
+;;      (if (.exists (clojure.java.io/as-file (str prefix filename)))
+;;        (slurp (str prefix filename))
+;;        (recur filename (- level 1) (str "../" prefix))))))
+;;   )
 
-(def ff2 '(mwm/defn2 xml-keep-tag-content
-  "Keep recursive map and only keep :tag and :content as key and value.
-   The resulting structure looks like json."
-  ([pxml]
-   (if (:tag? pxml)
-     (xml-keep-tag-content (:tag pxml)(:content pxml))
-     pxml))
-  ([tag content]
-   {tag
-    (if (seq? content)
-      (let [res (for [pxml content] (xml-keep-tag-content pxml))]
-        ;; use vector and remove singletons to make structure clearer
-        (if (> (count res) 1) (into [] res) (first res)))
-      content)}))
-)
+;; (def ff2 '(mwm/defn2 xml-keep-tag-content
+;;   "Keep recursive map and only keep :tag and :content as key and value.
+;;    The resulting structure looks like json."
+;;   ([pxml]
+;;    (if (:tag? pxml)
+;;      (xml-keep-tag-content (:tag pxml)(:content pxml))
+;;      pxml))
+;;   ([tag content]
+;;    {tag
+;;     (if (seq? content)
+;;       (let [res (for [pxml content] (xml-keep-tag-content pxml))]
+;;         ;; use vector and remove singletons to make structure clearer
+;;         (if (> (count res) 1) (into [] res) (first res)))
+;;       content)}))
+;; )
 
-(def ff3 '(mwm/defn2 -main
-  "I don't do a whole lot ... yet."
-  [& args]
-  (println "Hello, World!"))
-)
+;; (def ff3 '(mwm/defn2 -main
+;;   "I don't do a whole lot ... yet."
+;;   [& args]
+;;   (println "Hello, World!"))
+;; )
 
-(def ff4 '(mwm/defn2 -main?
-  "I don't do a whole lot ... yet."
-  [& args?]
-  (println "Hello, World!"))
-)
+;; (def ff4 '(mwm/defn2 -main?
+;;   "I don't do a whole lot ... yet."
+;;   [& args?]
+;;   (println "Hello, World!"))
+;; )
