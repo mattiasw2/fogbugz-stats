@@ -8,7 +8,7 @@
 (use 'clojure.tools.logging)
 
 ;;; https://client.cdn77.com/support/api/version/2.0/data#Prefetch
-(defn cdn77-prefetch [config urls]
+(mwm/defn2 cdn77-prefetch [config urls]
   (if (not= urls ())
     (let [;;the one without the www2
           site (:cdn config)              
@@ -27,7 +27,7 @@
 
 
 
-(defn cdn77-purgeall [config]
+(mwm/defn2 cdn77-purgeall [config]
   (let [options {:form-params {:cdn_id (:cdn_id config)
                                :login (:login config)
                                :passwd (:passwd config)}}
