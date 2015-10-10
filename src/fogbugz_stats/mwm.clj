@@ -71,12 +71,13 @@
 (defn is-let? [x]
   (and (list? x)
        (< 2 (count x))
-       (= 'let (first x))))
+       (= 'clojure.core/let (first x))))
 
 
 
 ;;; wrap all (:xxx yyy) calls and make sure result is non-nil
-(defn wrap-get-3 [x]
+;;; this must be called using postwalk, since (:ccc ???) is in the result, and then I would expand that again
+(defn wrap-get-2 [x]
   (if (is-keyword-get? x)
     (let [keyword1 (first x)
           ;; (str) better than (name) + (name-space), but need to remove ':'
@@ -84,7 +85,7 @@
           ;; todo: do we have a bug here and do not hande ::foo?????
           keyword-as-string (.substring keyword-as-string-raw 1)]   
       (if (not= \? (last keyword-as-string))
-        `(let* [res# ~x] (assert (not (nil? res#)) ~(str keyword-as-string-raw " is nil")) res#) 
+        `(clojure.core/let [res# ~x] (assert (not (nil? res#)) ~(str keyword-as-string-raw " is nil")) res#) 
         ;; we have to remove the final ? in :foo? since just an annotation
         (let [name2 (.substring keyword-as-string 0 (- (count keyword-as-string) 1))
               keyword2 (keyword name2)]
@@ -92,33 +93,12 @@
         ))
     x))
 
-;;; change let => let*  and (get map :foo) => (:foo map)
-(defn wrap-get-2 [x]
-  (let [x2
-        (if (is-keyword-get-get? x)
-          `(~(last x) ~(second x))
-          x)
-        ]
-    (println "call wrap-get-3")
-    (pp/pprint x2)
-    (wrap-get-3 x2)))
+;;; (get map :foo) => (:foo map)
+(defn remove-get-3 [x]
+  (if (is-keyword-get-get? x)
+    (list (last x) (second x))
+    x))
 
-;;; change let => let*  and (get map :foo) => (:foo map)
-(defn wrap-get [x]
-  (let [x3 
-        (if (is-let? x)
-          ;; if I macroexpand, I need to repeat after it
-          ;; todo: this might mean that I wrap things more than once, ideally, I should limit the depth
-          (let [x2 (walk/prewalk wrap-get-2 (macroexpand-1 x))]
-            (println "let")
-            (pp/pprint x2)
-            ;(pp/pprint x2)
-            x2)
-          x)
-        ]
-    (println "call wrap-get-2")
-    (pp/pprint x3)
-    (wrap-get-2 x3)))
 
 
 ;;; return true if names ends with ?
@@ -167,7 +147,10 @@
   ;; macroexpand instead of macroexpand-1 since we want to handle :keys
   (let [defun (macroexpand-1 (cons 'clojure.core/defn body))
         [c1 name [c2 & clauses]] defun
-        clauses2 (for [clause clauses] (walk/postwalk wrap-get clause))
+        ;; expand away let mostly, in order to handle :keys in let
+        clauses1 (for [clause clauses] (walk/postwalk macroexpand clause))
+        ;; _ (pp/pprint clauses1)
+        clauses2 (for [clause clauses1] (walk/postwalk #(wrap-get-2 (remove-get-3 %)) clause))
         no-post (q? name)
         ;; disallow :post if recur occurs in clause
         ;; or wrap using loop, but :pre then only be run once?
@@ -245,3 +228,12 @@
 (def ff8 '(mwm/defn2 keys [config]
             (let [x (:foo config)]
               [x x])))
+
+(def ff9 '(mwm/defn2 keys [config]
+            (let [x (:foo config)]
+              [x x])))
+
+
+;; prewalk is the one I want if I would like to expand let and then replace
+;; (clojure.walk/prewalk #(do (println %) %) mwm/ff7)
+;; (clojure.walk/postwalk #(do (println %) %) mwm/ff7)
