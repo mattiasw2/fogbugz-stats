@@ -1,11 +1,24 @@
 (ns fogbugz-stats.fogbugz-api
   (:require [org.httpkit.client :as http]
             [fogbugz-stats.mwm :as mwm]
+            [fogbugz-stats.mw1 :as mw1]
             )
   (:gen-class)
   )
 
 (use 'clojure.tools.logging)
+
+(mwm/defn2 api-xml [config]
+  (let [res @(http/get (:url config) {})
+        {:keys [status error?]} res
+        ]
+    (if error? (error "Failed, exception is " error? res))
+    (:body res)
+    ))
+
+
+(mwm/defn2 test2 [config]
+  (:version (:response (mw1/xml-keep-tag-content (mw1/of-xml-string (api-xml config))))))
 
 ;;; https://client.cdn77.com/support/api/version/2.0/data#Prefetch
 (mwm/defn2 cdn77-prefetch [config urls]
