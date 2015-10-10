@@ -219,34 +219,34 @@
 ;;     res
 ;;     )))
 
-(def ff7 '(mwm/defn2 keys [config]
-            (let [{:keys [a b]} config
-                  foo (:foo config)]
-              [a b])))
+;; (def ff7 '(mwm/defn2 keys [config]
+;;             (let [{:keys [a b]} config
+;;                   foo (:foo config)]
+;;               [a b])))
 
 
-(def ff8 '(mwm/defn2 keys [config]
-            (let [x (:foo config)]
-              [x x])))
+;; (def ff8 '(mwm/defn2 keys [config]
+;;             (let [x (:foo config)]
+;;               [x x])))
 
-(def ff9 '(mwm/defn2 keys [config]
-            (let [x (:foo config)]
-              [x x])))
+;; (def ff9 '(mwm/defn2 keys [config]
+;;             (let [x (:foo config)]
+;;               [x x])))
 
-(def ff10 '(mwm/defn2 api-xml [config]
-  (let [res @(http/get (:url config) {})
-        {:keys [status error?]} res
-        ]
-    (if error? (error "Failed, exception is " error? res))
-    (:body res)
-    )))
+;; (def ff10 '(mwm/defn2 api-xml [config]
+;;   (let [res @(http/get (:url config) {})
+;;         {:keys [status error?]} res
+;;         ]
+;;     (if error? (error "Failed, exception is " error? res))
+;;     (:body res)
+;;     )))
 
-;; note that error? refers to field :error
-;; the ? is only there to allow nil
-(def ff10 '(mwm/defn2 api-xml [config]
-  (let [res @(http/get (:url config) {})
-        {:keys [status error?]} res
-        ]
-    (if error? (error "Failed, exception is " error? res))
-    (:body res)
-    )))
+;; ;; note that error? refers to field :error
+;; ;; the ? is only there to allow nil
+;; (def ff10 '(mwm/defn2 api-xml [config]
+;;   (let [res @(http/get (:url config) {})
+;;         {:keys [status error?]} res
+;;         ]
+;;     (if error? (error "Failed, exception is " error? res))
+;;     (:body res)
+;;     )))
