@@ -59,24 +59,23 @@
 ;;; todo: but still cannot handle mw1/find-and-slurp
 ;;; what is wrong with the clojure compiler?
 ;;; it might be that I macroexpand too early or something different
-(quote
- (defn find-and-slurp
-   "Search and slurp for file in this dir, and all parents until found. Throw exception if not found. Max 50 levels"
-   ([filename]
-    {:pre [(not (nil? filename))]
-     :post [#(not (nil? %))]
-     }
-    (find-and-slurp filename 50 ""))
-   ([filename level prefix]
-    {:pre [(not (nil? filename))(not (nil? prefix))(not (nil? level))]
-    ;;; remove this :post row and it compiles, so why doesn't it work when using defn2?
-     :post [#(not (nil? %))]
-     }
-    (if (< level 0) 
-      (throw (Exception. (str "Not found: " filename)))
-      (if (.exists (clojure.java.io/as-file (str prefix filename)))
-        (slurp (str prefix filename))
-        (recur filename (- level 1) (str "../" prefix)))))))
+;; (defn find-and-slurp
+;;    "Search and slurp for file in this dir, and all parents until found. Throw exception if not found. Max 50 levels"
+;;   ([filename]
+;;    {:pre [(not (nil? filename))]
+;;     :post [#(not (nil? %))]
+;;     }
+;;    (find-and-slurp filename 50 ""))
+;;   ([filename level prefix]
+;;    {:pre [(not (nil? filename))(not (nil? prefix))(not (nil? level))]
+;;     ;;; remove this :post row and it compiles, so why doesn't it work when using defn2?
+;;     :post [#(not (nil? %))]
+;;     }
+;;    (if (< level 0) 
+;;      (throw (Exception. (str "Not found: " filename)))
+;;      (if (.exists (clojure.java.io/as-file (str prefix filename)))
+;;         (slurp (str prefix filename))
+;;         (recur filename (- level 1) (str "../" prefix))))))
 
 ;;; return true of body contains recur
 (defn recur? [fun]
