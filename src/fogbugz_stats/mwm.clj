@@ -6,9 +6,32 @@
   (:gen-class)
   )
 
-;; todo:
-;; extend to :keys
+;; TODO:
+;;
+;; extend to :keys 
 ;; (let [{:keys [a b]} {:a 10, :b 20, :c 39}] [a b])  =>  [10 20]
+;;
+;; How? They are expanded into (clojure.core/get map :a) Should I replace them too?
+;; The problem is that (get map key) is also valid for vectors etc.... Do I want to extend to them?
+;; http://conj.io/store/v1/org.clojure/clojure/1.7.0/clj/clojure.core/get
+;;
+;; (pp/pprint (macroexpand '(let [{:keys [a b]} {:a 10, :b 20, :c 39}] [a b])))
+;; (let*
+;;  [map__10519
+;;   {:a 10, :b 20, :c 39}
+;;   map__10519
+;;   (if
+;;    (clojure.core/seq? map__10519)
+;;    (clojure.lang.PersistentHashMap/create
+;;     (clojure.core/seq map__10519))
+;;    map__10519)
+;;   a
+;;   (clojure.core/get map__10519 :a)
+;;   b
+;;   (clojure.core/get map__10519 :b)]
+;;  [a b])
+;; nil
+;; fogbugz-stats.core> 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; I hate nil:s, and I do not expect them unless I ask for them
