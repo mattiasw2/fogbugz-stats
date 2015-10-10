@@ -95,7 +95,7 @@
         ;; disallow :post if recur occurs in clause
         ;; or wrap using loop, but :pre then only be run once?
         ;; http://dev.clojure.org/jira/browse/CLJ-1475
-        clauses3 (for [clause clauses2] (add-pre-post clause (or (recur? clause) no-post)))
+        clauses3 (for [clause clauses2] (add-pre-post clause (or no-post (recur? clause))))
         res `(~c1 ~name (~c2 ~@clauses3))]
     res))
 
