@@ -57,18 +57,18 @@
 ;; (mwm/defn2 foo? "can return nil" ([x] (:foo (:bar x))) ([y z] (:gegga y)))
 
 ;;; true if (:keyword ??)
-(defn is-keyword-get? [x]
+(defn- is-keyword-get? [x]
   (and (list? x)
        (= 2 (count x))
        (keyword? (first x))))
 
-(defn is-keyword-get-get? [x]
+(defn- is-keyword-get-get? [x]
   (and (list? x)
        (= 3 (count x))
        (= 'clojure.core/get (first x))
        (keyword? (last x))))
 
-(defn is-let? [x]
+(defn- is-let? [x]
   (and (list? x)
        (< 2 (count x))
        (= 'clojure.core/let (first x))))
@@ -77,7 +77,7 @@
 
 ;;; wrap all (:xxx yyy) calls and make sure result is non-nil
 ;;; this must be called using postwalk, since (:ccc ???) is in the result, and then I would expand that again
-(defn wrap-get-2 [x]
+(defn- wrap-get-2 [x]
   (if (is-keyword-get? x)
     (let [keyword1 (first x)
           ;; (str) better than (name) + (name-space), but need to remove ':'
@@ -94,7 +94,7 @@
     x))
 
 ;;; (get map :foo) => (:foo map)
-(defn remove-get-3 [x]
+(defn- remove-get-3 [x]
   (if (is-keyword-get-get? x)
     (list (last x) (second x))
     x))
