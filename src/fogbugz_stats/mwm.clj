@@ -56,25 +56,30 @@
 (defn ignore-arg? [name]
   (or (q? name) (keyword? name) (= "&" (str name))))
 
+;;; return true of body contains recur
+(defn recur? [fun]
+  (some #(and (seq? %)(= 'recur (first %)))
+        (tree-seq seq? rest fun)))
+
 ;;; add :post unless allowed-to-return-nil
 ;;; add :pre for each argument whose name not ending with ?
-(defn build-pre-post [args allowed-to-return-nil]
+(defn build-pre-post [args no-post]
   (let [pre (into [] (for [arg (filter (complement ignore-arg?) args)] `(not (nil? ~arg))))
         pre2 (if (> (count pre) 0) {:pre pre} {})
-        post (if allowed-to-return-nil {} {:post [#(not (nil? %))]})
+        post (if no-post {} {:post [#(not (nil? %))]})
         ]
     (conj pre2 post)))
 
 
 ;;; add {:pre :post} map unless prepost-map already exists
-(defn add-pre-post [clause allowed-to-return-nil]
+(defn add-pre-post [clause no-post]
   (let [args (first clause)
         prepost (map? (second clause))
         rst (nthrest clause 1)]
     ;; make sure map is not the only part of the body, it might be that the function returns a map
     (if (and prepost (> (count rst) 1))
       clause
-      (list args (build-pre-post args allowed-to-return-nil) rst))))
+      (list args (build-pre-post args no-post) rst))))
             
 ;;; just like defn, except that it hates nils in (:xxx ??) lookups and
 ;;; in function arguments and function return values
@@ -86,11 +91,11 @@
   (let [defun (macroexpand-1 (cons 'defn body))
         [c1 name [c2 & clauses]] defun
         clauses2 (for [clause clauses] (walk/postwalk wrap-get clause))
-        ;; todo disallow :post if recur occurs in clause
+        no-post (q? name)
+        ;; disallow :post if recur occurs in clause
         ;; or wrap using loop, but :pre then only be run once?
         ;; http://dev.clojure.org/jira/browse/CLJ-1475
-        allowed-to-return-nil (q? name); true ;; to prevent :post(q? name)
-        clauses3 (for [clause clauses2] (add-pre-post clause allowed-to-return-nil))
+        clauses3 (for [clause clauses2] (add-pre-post clause (or (recur? clause) no-post)))
         res `(~c1 ~name (~c2 ~@clauses3))]
     res))
 
