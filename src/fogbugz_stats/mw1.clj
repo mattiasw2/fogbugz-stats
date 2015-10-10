@@ -49,8 +49,9 @@
    {tag
     (if (seq? content)
       (let [res (for [pxml content] (xml-keep-tag-content pxml))]
-        ;; use vector and remove singletons to make structure clearer
-        (if (> (count res) 1) (into [] res) (first res)))
+        ;; assume keys are unique and store into map on each level
+        ;; if you replace {} by [], instead we can handle duplicates on each level
+        (if (> (count res) 1) (into {} res) (first res)))
       content)}))
 
 
