@@ -8,8 +8,8 @@
 
 (use 'clojure.tools.logging)
 
-(mwm/defn2 api-xml [config]
-  (let [res @(http/get (:url config) {})
+(mwm/defn2 api-xml-raw [url options]
+  (let [res @(http/get url options)
         ;; no status for some kind of errors
         {:keys [status? error?]} res
         ]
@@ -20,9 +20,64 @@
       (:body res))
     ))
 
+;;; call fogbugz and return the XML parsed as nested maps
+;;; throws exception if fails.
+(mwm/defn2 api-xml [url options]
+  (:response (mw1/xml-keep-tag-content (mw1/of-xml-string (api-xml-raw url options)))))
 
-(mwm/defn2 test2 [config]
-  (:version (:response (mw1/xml-keep-tag-content (mw1/of-xml-string (api-xml config))))))
+;;; check the version and abort if not "8"
+(mwm/defn2 check-version [config]
+  (let [options {}
+        response (api-xml (:versionurl config) options)]
+    (if (not= "8" (:version response)) (throw (Exception. "Wrong fogbugz version")))
+    true))
+
+
+;; (def options {:timeout 200             ; ms
+;;               :basic-auth ["user" "pass"]
+;;               :query-params {:param "value" :param2 ["value1" "value2"]}
+;;               :user-agent "User-Agent-string"
+;;               :headers {"X-Header" "Value"}})
+ 
+;;; http://www.example.com/api.asp?cmd=logon&email=xxx@example.com&password=BigMac =>
+;;; <response><token>24dsg34lok43un23</token></response>
+(mwm/defn2 login
+  "Login into Fogbugz at config, and if successful at :token to config. 
+   Otherwise, abort with :token is nil exception"
+  [config]
+  (let [options {:query-params {:cmd "logon", :email (:email config), :password (:password config)}}
+        response (api-xml (:url config) options)]
+    ;; if I do not get a token, this will fail, and exception is thrown (defn2)
+    (into config {:token (:token response)})
+    ))
+
+
+;;; make simple commands without arguments
+(mwm/defn2 cmd
+  "Call fogbugz at config with cmd
+   config should have a :token from login"
+  [config cmd]
+  (let [options {:query-params {:cmd cmd, :token (:token config)}}
+        response (api-xml (:url config) options)]
+    response
+    ))
+
+;;; http://help.fogcreek.com/8202/xml-api#Checking_the_API_Version_and_location
+(mwm/defn2 listFilters [config] (cmd config "listFilters"))
+(mwm/defn2 listProjects [config] (cmd config "listProjects"))
+(mwm/defn2 listMailboxes [config] (cmd config "listMailboxes"))
+(mwm/defn2 listAreas [config] (cmd config "listAreas"))
+;;;(mwm/defn2  [config] (cmd config ""))
+
+;;; list of Inbox
+;;; http://examples.spreadsheetconverter.com/fogbugz/default.asp?pg=pgList&pre=preSaveFilterProject&ixProject=6
+;;; type:"case" status:"open" project:"Inbox" 
+(mwm/defn2 inbox
+  "List all we know about the Inbox"
+  [config]
+  (let [response (api-xml (:url config) {:query-params {:cmd "search", :q "type:\"case\" status:\"open\" project:\"Inbox\"", :cols "sTitle,sStatus,sCustomerEmail,dtOpened", :max "100" :token (:token config)}})]
+    response))
+ 
 
 ;;; https://client.cdn77.com/support/api/version/2.0/data#Prefetch
 (mwm/defn2 cdn77-prefetch [config urls]
@@ -53,3 +108,13 @@
     (info "purgeall, PLEASE rerun in about 10 minutes to fill caches. ")
     (if error (error "Failed, exception is " error res))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; sample
+
+;; fogbugz-stats.core=> (def cc (api/login Config))
+;; #'fogbugz-stats.core/cc
+;; fogbugz-stats.core=> (api/inbox cc)
+;; {:cases {:case {:sTitle "(Untitled)", :sStatus "Active", :sCustomerEmail "\"Emma
+;;  Williams\" <Emma.Williams@closeinvestments.com>", :dtOpened "2008-01-23T23:43:3
+;; 2Z"}}}
+;; fogbugz-stats.core=>

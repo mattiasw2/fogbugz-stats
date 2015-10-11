@@ -17,7 +17,11 @@
 
 (def Config
   "Private config settings, i.e. not be distributed"
-  ;;{:url "" :token ""})
+  ;; {:versionurl "http://......./api.xml"
+  ;;  :url "http://...../api.asp"
+  ;;  :email ""
+  ;;  :password ""
+  ;;  }
   (read-string (mw1/find-and-slurp "fogbugz-stats.config")))
 
   
