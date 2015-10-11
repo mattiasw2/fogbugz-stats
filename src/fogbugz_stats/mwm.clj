@@ -8,7 +8,12 @@
 
 ;; TODO:
 ;;
-;; extend to :keys 
+;; TODO: do I handle (map :email entities) ?
+;; No, you need to write (map #(:foo %) args))
+;;
+;; TODO: check how (get-in track [:speaker :first]) works (and update-in, assoc-in)
+;;
+;; extend to :keys DONE!!!!
 ;; (let [{:keys [a b]} {:a 10, :b 20, :c 39}] [a b])  =>  [10 20]
 ;;
 ;; How? They are expanded into (clojure.core/get map :a) Should I replace them too?
@@ -250,3 +255,5 @@
 ;;     (if error? (error "Failed, exception is " error? res))
 ;;     (:body res)
 ;;     )))
+
+;;(def ff12 '(mwm/defn2 bar [args] (map :foo args)))
