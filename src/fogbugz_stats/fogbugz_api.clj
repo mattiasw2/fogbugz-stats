@@ -10,10 +10,14 @@
 
 (mwm/defn2 api-xml [config]
   (let [res @(http/get (:url config) {})
-        {:keys [status error?]} res
+        ;; no status for some kind of errors
+        {:keys [status? error?]} res
         ]
-    (if error? (error "Failed, exception is " error? res))
-    (:body res)
+    (if error?
+      (let [err (str "api-xml Failed, exception is " error? " res:" res)]
+        (error err)
+        (throw (Exception. err)))
+      (:body res))
     ))
 
 
