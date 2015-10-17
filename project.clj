@@ -13,7 +13,11 @@
                  [org.clojure/tools.namespace "0.2.11"]
                  [org.clojure/tools.cli "0.3.3"]
                  ;; duplicate trace [org.clojure/tools.trace "0.7.8"]
+                 [org.clojure/test.check "0.8.2"]
                  ]
+  ;;; proxy to make fiddler work
+  ;;; :jvm-opts ["-Xmx1g" "-server"] 
+  ;;; :jvm-opts ["-Dhttp.proxyHost=localhost" "-Dhttp.proxyPort=8888"] Not working!!!
   :main ^:skip-aot fogbugz-stats.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

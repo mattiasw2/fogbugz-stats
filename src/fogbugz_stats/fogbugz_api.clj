@@ -33,6 +33,7 @@
     true))
 
 
+;; http://www.http-kit.org/client.html
 ;; (def options {:timeout 200             ; ms
 ;;               :basic-auth ["user" "pass"]
 ;;               :query-params {:param "value" :param2 ["value1" "value2"]}
@@ -71,11 +72,33 @@
 
 ;;; list of Inbox
 ;;; http://examples.spreadsheetconverter.com/fogbugz/default.asp?pg=pgList&pre=preSaveFilterProject&ixProject=6
-;;; type:"case" status:"open" project:"Inbox" 
+;;; type:"case" status:"open" project:"Inbox"
+;;; this works, except we see 5 old cases.
+;;; http://examples.spreadsheetconverter.com/fogbugz/api.asp?token=&cmd=search&q=type:"case"status:"open"project:"Inbox"&cols=sTitle,sStatus,sCustomerEmail,dtOpened&max=10000
+;;; ignore if <case ixBug="35549" or below
+;;  <case ixBug="35549" operations="edit,spam,assign,resolve,reply,forward,remind">
+;;  <sTitle>
+;;  <![CDATA[
+;; Please Convert
+;; ]]>
+;;  </sTitle>
+;;  <sStatus>
+;;  <![CDATA[
+;; Active
+;; ]]>
+;;  </sStatus>
+;;  <sCustomerEmail>
+;;  <![CDATA[
+;; "Eric Gutbezahl" <ericg@glinkcomm.net>
+;; ]]>
+;;  </sCustomerEmail>
+;;  </case>
+;;  </cases>
+;; </response>
 (mwm/defn2 inbox
   "List all we know about the Inbox"
   [config]
-  (let [response (api-xml (:url config) {:query-params {:cmd "search", :q "type:\"case\" status:\"open\" project:\"Inbox\"", :cols "sTitle,sStatus,sCustomerEmail,dtOpened", :max "100" :token (:token config)}})]
+  (let [response (api-xml (:url config) {:query-params {:token (:token config) :cmd "search", :q "type:\"case\"status:\"open\"project:\"Inbox\"", :cols "sTitle,sStatus,sCustomerEmail,dtOpened",:max 100 }})]
     response))
  
 
