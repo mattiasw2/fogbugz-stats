@@ -1,7 +1,7 @@
 (ns fogbugz-stats.fogbugz-api
   (:require [org.httpkit.client :as http]
-            [fogbugz-stats.mwm :as mwm]
-            [fogbugz-stats.mw1 :as mw1]
+            [mw.mwm :as mwm]
+            [mw.mw1 :as mw1]
             )
   (:gen-class)
   )

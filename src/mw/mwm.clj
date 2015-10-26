@@ -1,4 +1,4 @@
-(ns fogbugz-stats.mwm
+(ns mw.mwm
   (:require
    [clojure.pprint :as pp]
    [clojure.walk :as walk]
